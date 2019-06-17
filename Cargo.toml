@@ -3,6 +3,10 @@ name = "tokio-diesel"
 version = "0.1.0"
 authors = ["Ryan Leckey <leckey.ryan@gmail.com>"]
 edition = "2018"
+description = "Integrate Diesel into Tokio cleanly and efficiently."
+repository = "https://github.com/mehcode/tokio-diesel"
+license = "MIT/Apache-2.0"
+categories = ["asynchronous", "database"]
 
 [dependencies]
 diesel = { version = "1.4.2", features = [ "r2d2" ] }
