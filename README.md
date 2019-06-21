@@ -3,7 +3,7 @@
 
 ## Usage
 
-See [the example](./example) for detailed usage information.
+See [the example](./examples/simple.rs) for detailed usage information.
 
 ## License
 
