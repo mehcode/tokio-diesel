@@ -32,6 +32,20 @@ pub enum AsyncError {
     Error(diesel::result::Error),
 }
 
+pub trait OptionalExtension<T> {
+    fn optional(self) -> Result<Option<T>, AsyncError>;
+}
+
+impl<T> OptionalExtension<T> for AsyncResult<T> {
+    fn optional(self) -> Result<Option<T>, AsyncError> {
+        match self {
+            Ok(value) => Ok(Some(value)),
+            Err(AsyncError::Error(diesel::result::Error::NotFound)) => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
+}
+
 // TODO: Forward displays
 impl fmt::Display for AsyncError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
