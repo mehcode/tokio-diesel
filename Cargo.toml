@@ -1,6 +1,6 @@
 [package]
 name = "tokio-diesel"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Ryan Leckey <leckey.ryan@gmail.com>"]
 edition = "2018"
 description = "Integrate Diesel into Tokio cleanly and efficiently."
