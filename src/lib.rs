@@ -1,5 +1,3 @@
-#![feature(async_await)]
-
 use diesel::{
     dsl::Limit,
     query_dsl::{
@@ -12,7 +10,7 @@ use diesel::{
 };
 use futures::{
     future::{poll_fn, BoxFuture},
-    FutureExt, TryFutureExt,
+    Future, FutureExt, TryFutureExt,
 };
 use std::{error::Error as StdError, fmt};
 use tokio_threadpool::BlockingError;
@@ -189,18 +187,17 @@ fn poll_01_to_03<T, E>(x: Result<futures01::Async<T>, E>) -> futures::task::Poll
 }
 
 // Run a closure with blocking IO
-async fn blocking<R, F>(f: F) -> AsyncResult<R>
+fn blocking<R, F>(f: F) -> impl Future<Output = AsyncResult<R>>
 where
     R: Send,
     F: FnOnce() -> AsyncResult<R>,
 {
     let mut f = Some(f);
-    Ok(poll_fn(move |_| {
+    poll_fn(move |_| {
         poll_01_to_03(tokio_threadpool::blocking(|| {
             (f.take().expect("call FnOnce more than once"))()
         }))
     })
     .map_err(AsyncError::NotInPool)
     .unwrap_or_else(|err| Err(err))
-    .await?)
 }
