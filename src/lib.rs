@@ -1,5 +1,3 @@
-#![feature(async_await)]
-
 use diesel::{
     dsl::Limit,
     query_dsl::{
@@ -10,21 +8,14 @@ use diesel::{
     result::QueryResult,
     Connection,
 };
-use futures::{
-    future::{poll_fn, BoxFuture},
-    FutureExt, TryFutureExt,
-};
+use futures::future::BoxFuture;
 use std::{error::Error as StdError, fmt};
-use tokio_threadpool::BlockingError;
+use tokio_executor::blocking;
 
 pub type AsyncResult<R> = Result<R, AsyncError>;
 
 #[derive(Debug)]
 pub enum AsyncError {
-    // Attempt to run an async operation while not in a
-    // tokio worker pool
-    NotInPool(BlockingError),
-
     // Failed to checkout a connection
     Checkout(r2d2::Error),
 
@@ -81,8 +72,9 @@ where
         R: 'static + Send,
         Func: 'static + FnOnce(&Conn) -> QueryResult<R> + Send,
     {
-        FutureExt::boxed(blocking(move || {
-            let conn = self.get().map_err(AsyncError::Checkout)?;
+        let self_ = self.clone();
+        Box::pin(blocking::run(move || {
+            let conn = self_.get().map_err(AsyncError::Checkout)?;
             f(&*conn).map_err(AsyncError::Error)
         }))
     }
@@ -93,8 +85,9 @@ where
         R: 'static + Send,
         Func: 'static + FnOnce(&Conn) -> QueryResult<R> + Send,
     {
-        FutureExt::boxed(blocking(move || {
-            let conn = self.get().map_err(AsyncError::Checkout)?;
+        let self_ = self.clone();
+        Box::pin(blocking::run(move || {
+            let conn = self_.get().map_err(AsyncError::Checkout)?;
             conn.transaction(|| f(&*conn)).map_err(AsyncError::Error)
         }))
     }
@@ -177,30 +170,4 @@ where
     {
         asc.run(|conn| self.first(&*conn))
     }
-}
-
-// Convert a `Poll` from futures v0.1 to a `Poll` from futures v0.3
-// https://github.com/rust-lang-nursery/futures-rs/blob/526259e3e25e65cc32653f6a8e0244db2faccb2e/futures-util/src/compat/compat01as03.rs#L135
-fn poll_01_to_03<T, E>(x: Result<futures01::Async<T>, E>) -> futures::task::Poll<Result<T, E>> {
-    match x? {
-        futures01::Async::Ready(t) => futures::task::Poll::Ready(Ok(t)),
-        futures01::Async::NotReady => futures::task::Poll::Pending,
-    }
-}
-
-// Run a closure with blocking IO
-async fn blocking<R, F>(f: F) -> AsyncResult<R>
-where
-    R: Send,
-    F: FnOnce() -> AsyncResult<R>,
-{
-    let mut f = Some(f);
-    Ok(poll_fn(move |_| {
-        poll_01_to_03(tokio_threadpool::blocking(|| {
-            (f.take().expect("call FnOnce more than once"))()
-        }))
-    })
-    .map_err(AsyncError::NotInPool)
-    .unwrap_or_else(|err| Err(err))
-    .await?)
 }

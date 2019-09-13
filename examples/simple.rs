@@ -1,5 +1,3 @@
-#![feature(async_await)]
-
 #[macro_use]
 extern crate diesel;
 
@@ -7,6 +5,7 @@ use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, Pool},
 };
+use std::error::Error;
 use tokio_diesel::*;
 use uuid::Uuid;
 
@@ -17,8 +16,8 @@ table! {
     }
 }
 
-#[runtime::main(runtime_tokio::Tokio)]
-async fn main() -> Result<(), failure::Error> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
     // Connect
     let manager =
         ConnectionManager::<PgConnection>::new("postgres://postgres@localhost/tokio_diesel__test");

@@ -10,16 +10,13 @@ categories = ["asynchronous", "database"]
 
 [dependencies]
 diesel = { version = "1.4.2", features = [ "r2d2" ] }
-tokio = "0.1"
-tokio-threadpool = "0.1"
-futures-preview = "=0.3.0-alpha.17"
-futures01 = { version = "0.1", package = "futures" }
+tokio-executor = "0.2.0-alpha.4"
+futures-preview = "0.3.0-alpha.18"
 r2d2 = "0.8"
 parking_lot = "0.8"
+tokio = { version = "0.2.0-alpha.4", default-features = false }
 
 [dev-dependencies]
-runtime = "0.3.0-alpha.4"
-runtime-tokio = "0.3.0-alpha.4"
 diesel = { version = "1.4.2", features = [ "postgres", "uuidv07" ] }
-failure = "0.1"
 uuid = { version = "0.7", features = [ "v4" ] }
+tokio = { version = "0.2.0-alpha.4", default-features = false, features = [ "rt-full" ] }
