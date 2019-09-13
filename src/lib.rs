@@ -8,7 +8,7 @@ use diesel::{
     result::QueryResult,
     Connection,
 };
-use futures::future::BoxFuture;
+use futures_core::future::BoxFuture;
 use std::{error::Error as StdError, fmt};
 use tokio_executor::blocking;
 

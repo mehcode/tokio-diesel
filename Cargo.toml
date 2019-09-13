@@ -11,12 +11,10 @@ categories = ["asynchronous", "database"]
 [dependencies]
 diesel = { version = "1.4.2", features = [ "r2d2" ] }
 tokio-executor = "0.2.0-alpha.4"
-futures-preview = "0.3.0-alpha.18"
-r2d2 = "0.8"
-parking_lot = "0.8"
-tokio = { version = "0.2.0-alpha.4", default-features = false }
+futures-core-preview = "0.3.0-alpha.18"
+r2d2 = "0.8.5"
 
 [dev-dependencies]
 diesel = { version = "1.4.2", features = [ "postgres", "uuidv07" ] }
-uuid = { version = "0.7", features = [ "v4" ] }
+uuid = { version = "0.7.4", features = [ "v4" ] }
 tokio = { version = "0.2.0-alpha.4", default-features = false, features = [ "rt-full" ] }
