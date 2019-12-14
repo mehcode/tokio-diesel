@@ -46,8 +46,14 @@ impl fmt::Display for AsyncError {
     }
 }
 
-// TODO: Forward causes
-impl StdError for AsyncError {}
+impl StdError for AsyncError {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        match *self {
+            AsyncError::Checkout(ref err) => Some(err),
+            AsyncError::Error(ref err) => Some(err),
+        }
+    }
+}
 
 #[async_trait]
 pub trait AsyncConnection<Conn>
