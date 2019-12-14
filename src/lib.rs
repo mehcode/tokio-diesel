@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use diesel::{
     dsl::Limit,
     query_dsl::{
@@ -8,9 +9,8 @@ use diesel::{
     result::QueryResult,
     Connection,
 };
-use futures_core::future::BoxFuture;
 use std::{error::Error as StdError, fmt};
-use tokio_executor::blocking;
+use tokio::task;
 
 pub type AsyncResult<R> = Result<R, AsyncError>;
 
@@ -47,127 +47,135 @@ impl fmt::Display for AsyncError {
 // TODO: Forward causes
 impl StdError for AsyncError {}
 
+#[async_trait]
 pub trait AsyncConnection<Conn>
 where
     Conn: 'static + Connection,
 {
-    fn run<R, Func>(&self, f: Func) -> BoxFuture<AsyncResult<R>>
+    async fn run<R, Func>(&self, f: Func) -> AsyncResult<R>
     where
         R: 'static + Send,
         Func: 'static + FnOnce(&Conn) -> QueryResult<R> + Send;
 
-    fn transaction<R, Func>(&self, f: Func) -> BoxFuture<AsyncResult<R>>
+    async fn transaction<R, Func>(&self, f: Func) -> AsyncResult<R>
     where
         R: 'static + Send,
         Func: 'static + FnOnce(&Conn) -> QueryResult<R> + Send;
 }
 
+#[async_trait]
 impl<Conn> AsyncConnection<Conn> for Pool<ConnectionManager<Conn>>
 where
     Conn: 'static + Connection,
 {
     #[inline]
-    fn run<R, Func>(&self, f: Func) -> BoxFuture<AsyncResult<R>>
+    async fn run<R, Func>(&self, f: Func) -> AsyncResult<R>
     where
         R: 'static + Send,
         Func: 'static + FnOnce(&Conn) -> QueryResult<R> + Send,
     {
         let self_ = self.clone();
-        Box::pin(blocking::run(move || {
+        task::spawn_blocking(move || {
             let conn = self_.get().map_err(AsyncError::Checkout)?;
             f(&*conn).map_err(AsyncError::Error)
-        }))
+        })
+        .await
+        .expect("task has panicked")
     }
 
     #[inline]
-    fn transaction<R, Func>(&self, f: Func) -> BoxFuture<AsyncResult<R>>
+    async fn transaction<R, Func>(&self, f: Func) -> AsyncResult<R>
     where
         R: 'static + Send,
         Func: 'static + FnOnce(&Conn) -> QueryResult<R> + Send,
     {
         let self_ = self.clone();
-        Box::pin(blocking::run(move || {
+        task::spawn_blocking(move || {
             let conn = self_.get().map_err(AsyncError::Checkout)?;
             conn.transaction(|| f(&*conn)).map_err(AsyncError::Error)
-        }))
+        })
+        .await
+        .expect("task has panicked")
     }
 }
 
+#[async_trait]
 pub trait AsyncRunQueryDsl<Conn, AsyncConn>
 where
     Conn: 'static + Connection,
 {
-    fn execute_async(self, asc: &AsyncConn) -> BoxFuture<AsyncResult<usize>>
+    async fn execute_async(self, asc: &AsyncConn) -> AsyncResult<usize>
     where
         Self: ExecuteDsl<Conn>;
 
-    fn load_async<U>(self, asc: &AsyncConn) -> BoxFuture<AsyncResult<Vec<U>>>
+    async fn load_async<U>(self, asc: &AsyncConn) -> AsyncResult<Vec<U>>
     where
         U: 'static + Send,
         Self: LoadQuery<Conn, U>;
 
-    fn get_result_async<U>(self, asc: &AsyncConn) -> BoxFuture<AsyncResult<U>>
+    async fn get_result_async<U>(self, asc: &AsyncConn) -> AsyncResult<U>
     where
         U: 'static + Send,
         Self: LoadQuery<Conn, U>;
 
-    fn get_results_async<U>(self, asc: &AsyncConn) -> BoxFuture<AsyncResult<Vec<U>>>
+    async fn get_results_async<U>(self, asc: &AsyncConn) -> AsyncResult<Vec<U>>
     where
         U: 'static + Send,
         Self: LoadQuery<Conn, U>;
 
-    fn first_async<U>(self, asc: &AsyncConn) -> BoxFuture<AsyncResult<U>>
+    async fn first_async<U>(self, asc: &AsyncConn) -> AsyncResult<U>
     where
         U: 'static + Send,
         Self: LimitDsl,
         Limit<Self>: LoadQuery<Conn, U>;
 }
 
+#[async_trait]
 impl<T, Conn> AsyncRunQueryDsl<Conn, Pool<ConnectionManager<Conn>>> for T
 where
     T: 'static + Send + RunQueryDsl<Conn>,
     Conn: 'static + Connection,
 {
-    fn execute_async(self, asc: &Pool<ConnectionManager<Conn>>) -> BoxFuture<AsyncResult<usize>>
+    async fn execute_async(self, asc: &Pool<ConnectionManager<Conn>>) -> AsyncResult<usize>
     where
         Self: ExecuteDsl<Conn>,
     {
-        asc.run(|conn| self.execute(&*conn))
+        asc.run(|conn| self.execute(&*conn)).await
     }
 
-    fn load_async<U>(self, asc: &Pool<ConnectionManager<Conn>>) -> BoxFuture<AsyncResult<Vec<U>>>
+    async fn load_async<U>(self, asc: &Pool<ConnectionManager<Conn>>) -> AsyncResult<Vec<U>>
     where
         U: 'static + Send,
         Self: LoadQuery<Conn, U>,
     {
-        asc.run(|conn| self.load(&*conn))
+        asc.run(|conn| self.load(&*conn)).await
     }
 
-    fn get_result_async<U>(self, asc: &Pool<ConnectionManager<Conn>>) -> BoxFuture<AsyncResult<U>>
+    async fn get_result_async<U>(self, asc: &Pool<ConnectionManager<Conn>>) -> AsyncResult<U>
     where
         U: 'static + Send,
         Self: LoadQuery<Conn, U>,
     {
-        asc.run(|conn| self.get_result(&*conn))
+        asc.run(|conn| self.get_result(&*conn)).await
     }
 
-    fn get_results_async<U>(
+    async fn get_results_async<U>(
         self,
         asc: &Pool<ConnectionManager<Conn>>,
-    ) -> BoxFuture<AsyncResult<Vec<U>>>
+    ) -> AsyncResult<Vec<U>>
     where
         U: 'static + Send,
         Self: LoadQuery<Conn, U>,
     {
-        asc.run(|conn| self.get_results(&*conn))
+        asc.run(|conn| self.get_results(&*conn)).await
     }
 
-    fn first_async<U>(self, asc: &Pool<ConnectionManager<Conn>>) -> BoxFuture<AsyncResult<U>>
+    async fn first_async<U>(self, asc: &Pool<ConnectionManager<Conn>>) -> AsyncResult<U>
     where
         U: 'static + Send,
         Self: LimitDsl,
         Limit<Self>: LoadQuery<Conn, U>,
     {
-        asc.run(|conn| self.first(&*conn))
+        asc.run(|conn| self.first(&*conn)).await
     }
 }
