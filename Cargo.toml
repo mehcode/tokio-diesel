@@ -9,6 +9,7 @@ license = "MIT/Apache-2.0"
 categories = ["asynchronous", "database"]
 
 [dependencies]
+async-trait = "0.1.21"
 diesel = { version = "1.4.2", features = [ "r2d2" ] }
 tokio-executor = "0.2.0-alpha.4"
 futures-core-preview = "0.3.0-alpha.18"
