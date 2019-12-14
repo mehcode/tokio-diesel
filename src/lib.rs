@@ -37,10 +37,12 @@ impl<T> OptionalExtension<T> for AsyncResult<T> {
     }
 }
 
-// TODO: Forward displays
 impl fmt::Display for AsyncError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        match *self {
+            AsyncError::Checkout(ref err) => err.fmt(f),
+            AsyncError::Error(ref err) => err.fmt(f),
+        }
     }
 }
 
