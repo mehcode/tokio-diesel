@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use diesel::{
+    connection::SimpleConnection,
     dsl::Limit,
     query_dsl::{
         methods::{ExecuteDsl, LimitDsl, LoadQuery},
@@ -52,6 +53,32 @@ impl StdError for AsyncError {
             AsyncError::Checkout(ref err) => Some(err),
             AsyncError::Error(ref err) => Some(err),
         }
+    }
+}
+
+#[async_trait]
+pub trait AsyncSimpleConnection<Conn>
+where
+    Conn: 'static + SimpleConnection,
+{
+    async fn batch_execute_async(&self, query: &str) -> AsyncResult<()>;
+}
+
+#[async_trait]
+impl<Conn> AsyncSimpleConnection<Conn> for Pool<ConnectionManager<Conn>>
+where
+    Conn: 'static + Connection,
+{
+    #[inline]
+    async fn batch_execute_async(&self, query: &str) -> AsyncResult<()> {
+        let self_ = self.clone();
+        let query = query.to_string();
+        task::spawn_blocking(move || {
+            let conn = self_.get().map_err(AsyncError::Checkout)?;
+            conn.batch_execute(&query).map_err(AsyncError::Error)
+        })
+        .await
+        .expect("task has panicked")
     }
 }
 
