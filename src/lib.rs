@@ -194,10 +194,7 @@ where
         asc.run(|conn| self.get_result(&*conn)).await
     }
 
-    async fn get_results_async<U>(
-        self,
-        asc: &Pool<ConnectionManager<Conn>>,
-    ) -> AsyncResult<Vec<U>>
+    async fn get_results_async<U>(self, asc: &Pool<ConnectionManager<Conn>>) -> AsyncResult<Vec<U>>
     where
         U: 'static + Send,
         Self: LoadQuery<Conn, U>,
