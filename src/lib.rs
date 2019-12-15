@@ -83,7 +83,7 @@ where
 }
 
 #[async_trait]
-pub trait AsyncConnection<Conn>
+pub trait AsyncConnection<Conn>: AsyncSimpleConnection<Conn>
 where
     Conn: 'static + Connection,
 {
