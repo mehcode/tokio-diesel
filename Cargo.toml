@@ -9,13 +9,13 @@ license = "MIT/Apache-2.0"
 categories = ["asynchronous", "database"]
 
 [dependencies]
-async-trait = "0.1.21"
-diesel = { version = "1.4.3", features = [ "r2d2" ] }
-futures = "0.3.1"
-r2d2 = "0.8.7"
-tokio = { version = "0.2.4", features = [ "blocking" ] }
+async-trait = "0.1.31"
+diesel = { version = "1.4.4", default-features = false, features = [ "r2d2" ] }
+futures = { version = "0.3.5", default-features = false }
+r2d2 = "0.8.8"
+tokio = { version = ">=0.2.21", default-features = false, features = [ "blocking", "rt-threaded" ] }
 
 [dev-dependencies]
-diesel = { version = "1.4.3", features = [ "postgres", "uuidv07" ] }
-uuid = { version = "0.7.4", features = [ "v4" ] }
-tokio = { version = "0.2.4", default-features = false, features = [ "full" ] }
+diesel = { version = "1.4.4", default-features = false, features = [ "postgres", "uuidv07" ] }
+uuid = { version = "0.8.1", features = [ "v4" ] }
+tokio = { version = ">=0.2.21", default-features = false, features = [ "full" ] }
