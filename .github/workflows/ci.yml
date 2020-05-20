@@ -1,0 +1,71 @@
+name: ci
+on:
+    pull_request:
+    push:
+        branches:
+            - master
+
+jobs:
+    check:
+        name: Check
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v1
+            - uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: stable
+                  override: true
+            - uses: actions-rs/cargo@v1
+              with:
+                  command: check
+
+    rustfmt:
+        name: Format
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v1
+            - uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: stable
+                  override: true
+            - run: rustup component add rustfmt
+            - uses: actions-rs/cargo@v1
+              with:
+                  command: fmt
+                  args: --all -- --check
+
+    test:
+        name: Test Suite
+        runs-on: ubuntu-latest
+        services:
+            postgres:
+                image: postgres
+                env:
+                    POSTGRES_USER: postgres
+                    POSTGRES_PASSWORD: postgres
+                    POSTGRES_DB: postgres
+                    POSTGRES_HOST_AUTH_METHOD: trust
+                ports:
+                    - 5432:5432
+                # needed because the postgres container does not provide a healthcheck
+                options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        steps:
+            - name: Checkout sources
+              uses: actions/checkout@v1
+
+            - name: Install PostgreSQL client
+              run: sudo apt-get -yqq install libpq-dev
+
+            - name: Install toolchain
+              uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: stable
+                  override: true
+
+            - name: Run cargo test
+              uses: actions-rs/cargo@v1
+              with:
+                  command: test
+              env:
+                  POSTGRES_HOST: localhost
+                  POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }}
