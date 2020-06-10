@@ -9,8 +9,8 @@ license = "MIT/Apache-2.0"
 categories = ["asynchronous", "database"]
 
 [dependencies]
-async-trait = "0.1.31"
-diesel = { version = "1.4.4", default-features = false, features = [ "r2d2" ] }
+async-trait = "0.1.33"
+diesel = { version = "1.4.5", default-features = false, features = [ "r2d2" ] }
 futures = { version = "0.3.5", default-features = false }
 r2d2 = "0.8.8"
 tokio = { version = ">=0.2.21", default-features = false, features = [ "blocking", "rt-threaded" ] }
