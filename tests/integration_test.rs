@@ -17,7 +17,7 @@ table! {
     }
 }
 
-#[tokio::test(threaded_scheduler)]
+#[tokio::test(flavor = "multi_thread")]
 async fn test_db_ops() -> Result<(), Box<dyn Error>> {
     let manager = ConnectionManager::<PgConnection>::new("postgres://postgres@localhost");
     let pool = Pool::builder().build(manager)?;
