@@ -56,6 +56,17 @@ impl StdError for AsyncError {
     }
 }
 
+struct TransactionError<E>(E);
+
+impl<E> From<diesel::result::Error> for TransactionError<E>
+where
+    E: From<AsyncError>,
+{
+    fn from(error: diesel::result::Error) -> Self {
+        TransactionError(E::from(AsyncError::Error(error)))
+    }
+}
+
 #[async_trait]
 pub trait AsyncSimpleConnection<Conn>
 where
@@ -90,10 +101,11 @@ where
         R: Send,
         Func: FnOnce(&Conn) -> QueryResult<R> + Send;
 
-    async fn transaction<R, Func>(&self, f: Func) -> AsyncResult<R>
+    async fn transaction<T, E, Func>(&self, f: Func) -> Result<T, E>
     where
-        R: Send,
-        Func: FnOnce(&Conn) -> QueryResult<R> + Send;
+        T: Send,
+        E: From<AsyncError> + Send,
+        Func: FnOnce(&Conn) -> Result<T, E> + Send;
 }
 
 #[async_trait]
@@ -115,15 +127,17 @@ where
     }
 
     #[inline]
-    async fn transaction<R, Func>(&self, f: Func) -> AsyncResult<R>
+    async fn transaction<T, E, Func>(&self, f: Func) -> Result<T, E>
     where
-        R: Send,
-        Func: FnOnce(&Conn) -> QueryResult<R> + Send,
+        T: Send,
+        E: From<AsyncError> + Send,
+        Func: FnOnce(&Conn) -> Result<T, E> + Send,
     {
         let self_ = self.clone();
         task::block_in_place(move || {
             let conn = self_.get().map_err(AsyncError::Checkout)?;
-            conn.transaction(|| f(&*conn)).map_err(AsyncError::Error)
+            conn.transaction(|| f(&*conn).map_err(TransactionError))
+                .map_err(|tx_error| tx_error.0)
         })
     }
 }
