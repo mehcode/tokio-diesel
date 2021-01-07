@@ -24,11 +24,11 @@ pub enum AsyncError {
     Error(diesel::result::Error),
 }
 
-pub trait OptionalExtension<T> {
+pub trait OptionalExtensionForAsyncResult<T> {
     fn optional(self) -> Result<Option<T>, AsyncError>;
 }
 
-impl<T> OptionalExtension<T> for AsyncResult<T> {
+impl<T> OptionalExtensionForAsyncResult<T> for AsyncResult<T> {
     fn optional(self) -> Result<Option<T>, AsyncError> {
         match self {
             Ok(value) => Ok(Some(value)),
