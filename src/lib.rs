@@ -18,7 +18,7 @@ pub type AsyncResult<R> = Result<R, AsyncError>;
 #[derive(Debug)]
 pub enum AsyncError {
     // Failed to checkout a connection
-    Checkout(r2d2::Error),
+    Checkout,
 
     // The query failed in some way
     Error(diesel::result::Error),
@@ -41,7 +41,9 @@ impl<T> OptionalExtension<T> for AsyncResult<T> {
 impl fmt::Display for AsyncError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            AsyncError::Checkout(ref err) => err.fmt(f),
+            AsyncError::Checkout => {
+                write!(f, "r2d2 pool does not have idle connections at the moment")
+            }
             AsyncError::Error(ref err) => err.fmt(f),
         }
     }
@@ -50,7 +52,7 @@ impl fmt::Display for AsyncError {
 impl StdError for AsyncError {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match *self {
-            AsyncError::Checkout(ref err) => Some(err),
+            AsyncError::Checkout => None,
             AsyncError::Error(ref err) => Some(err),
         }
     }
@@ -74,7 +76,7 @@ where
         let self_ = self.clone();
         let query = query.to_string();
         task::block_in_place(move || {
-            let conn = self_.get().map_err(AsyncError::Checkout)?;
+            let conn = self_.try_get().ok_or(AsyncError::Checkout)?;
             conn.batch_execute(&query).map_err(AsyncError::Error)
         })
     }
@@ -109,7 +111,7 @@ where
     {
         let self_ = self.clone();
         task::block_in_place(move || {
-            let conn = self_.get().map_err(AsyncError::Checkout)?;
+            let conn = self_.try_get().ok_or(AsyncError::Checkout)?;
             f(&*conn).map_err(AsyncError::Error)
         })
     }
@@ -122,7 +124,7 @@ where
     {
         let self_ = self.clone();
         task::block_in_place(move || {
-            let conn = self_.get().map_err(AsyncError::Checkout)?;
+            let conn = self_.try_get().ok_or(AsyncError::Checkout)?;
             conn.transaction(|| f(&*conn)).map_err(AsyncError::Error)
         })
     }
