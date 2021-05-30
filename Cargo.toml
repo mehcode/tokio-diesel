@@ -1,6 +1,6 @@
 [package]
 name = "tokio-diesel"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Ryan Leckey <leckey.ryan@gmail.com>"]
 edition = "2018"
 description = "Integrate Diesel into Tokio cleanly and efficiently."
@@ -10,12 +10,12 @@ categories = ["asynchronous", "database"]
 
 [dependencies]
 async-trait = "0.1.42"
-diesel = { version = "1.4.5", default-features = false, features = ["r2d2"] }
+diesel = { git = "https://github.com/diesel-rs/diesel", package = "diesel", default-features = false, features = ["r2d2"] }
 futures = { version = "0.3.8", default-features = false }
-r2d2 = "0.8.8"
+r2d2 = "0.8.9"
 tokio = { version = "1", default-features = false, features = ["rt-multi-thread"] }
 
 [dev-dependencies]
-diesel = { version = "1.4.4", default-features = false, features = ["postgres", "uuidv07"] }
+diesel = { git = "https://github.com/diesel-rs/diesel", package = "diesel", default-features = false, features = ["postgres"] }
 uuid = { version = "0.8.1", features = ["v4"] }
 tokio = { version = "1", default-features = false, features = ["full"] }
