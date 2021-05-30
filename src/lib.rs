@@ -74,7 +74,7 @@ where
         let self_ = self.clone();
         let query = query.to_string();
         task::block_in_place(move || {
-            let conn = self_.get().map_err(AsyncError::Checkout)?;
+            let mut conn = self_.get().map_err(AsyncError::Checkout)?;
             conn.batch_execute(&query).map_err(AsyncError::Error)
         })
     }
@@ -88,7 +88,7 @@ where
     async fn run<R, Func>(&self, f: Func) -> AsyncResult<R>
     where
         R: Send,
-        Func: FnOnce(&Conn) -> QueryResult<R> + Send;
+        Func: FnOnce(&mut Conn) -> QueryResult<R> + Send;
 
     async fn transaction<R, Func>(&self, f: Func) -> AsyncResult<R>
     where
@@ -105,12 +105,12 @@ where
     async fn run<R, Func>(&self, f: Func) -> AsyncResult<R>
     where
         R: Send,
-        Func: FnOnce(&Conn) -> QueryResult<R> + Send,
+        Func: FnOnce(&mut Conn) -> QueryResult<R> + Send,
     {
         let self_ = self.clone();
         task::block_in_place(move || {
-            let conn = self_.get().map_err(AsyncError::Checkout)?;
-            f(&*conn).map_err(AsyncError::Error)
+            let mut conn = self_.get().map_err(AsyncError::Checkout)?;
+            f(&mut *conn).map_err(AsyncError::Error)
         })
     }
 
@@ -122,8 +122,8 @@ where
     {
         let self_ = self.clone();
         task::block_in_place(move || {
-            let conn = self_.get().map_err(AsyncError::Checkout)?;
-            conn.transaction(|| f(&*conn)).map_err(AsyncError::Error)
+            let mut conn = self_.get().map_err(AsyncError::Checkout)?;
+            conn.transaction(|conn| f(&mut *conn)).map_err(AsyncError::Error)
         })
     }
 }
@@ -169,7 +169,7 @@ where
     where
         Self: ExecuteDsl<Conn>,
     {
-        asc.run(|conn| self.execute(&*conn)).await
+        asc.run(|conn| self.execute(conn)).await
     }
 
     async fn load_async<U>(self, asc: &Pool<ConnectionManager<Conn>>) -> AsyncResult<Vec<U>>
@@ -177,7 +177,7 @@ where
         U: Send,
         Self: LoadQuery<Conn, U>,
     {
-        asc.run(|conn| self.load(&*conn)).await
+        asc.run(|mut conn| self.load(&mut conn)).await
     }
 
     async fn get_result_async<U>(self, asc: &Pool<ConnectionManager<Conn>>) -> AsyncResult<U>
@@ -185,7 +185,7 @@ where
         U: Send,
         Self: LoadQuery<Conn, U>,
     {
-        asc.run(|conn| self.get_result(&*conn)).await
+        asc.run(|mut conn| self.get_result(&mut conn)).await
     }
 
     async fn get_results_async<U>(self, asc: &Pool<ConnectionManager<Conn>>) -> AsyncResult<Vec<U>>
@@ -193,7 +193,7 @@ where
         U: Send,
         Self: LoadQuery<Conn, U>,
     {
-        asc.run(|conn| self.get_results(&*conn)).await
+        asc.run(|mut conn| self.get_results(&mut conn)).await
     }
 
     async fn first_async<U>(self, asc: &Pool<ConnectionManager<Conn>>) -> AsyncResult<U>
@@ -202,6 +202,6 @@ where
         Self: LimitDsl,
         Limit<Self>: LoadQuery<Conn, U>,
     {
-        asc.run(|conn| self.first(&*conn)).await
+        asc.run(|mut conn| self.first(&mut conn)).await
     }
 }
