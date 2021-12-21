@@ -16,6 +16,6 @@ r2d2 = "0.8.9"
 tokio = { version = "1", default-features = false, features = ["rt-multi-thread"] }
 
 [dev-dependencies]
-diesel = { git = "https://github.com/diesel-rs/diesel", package = "diesel", default-features = false, features = ["postgres"] }
+diesel = { git = "https://github.com/diesel-rs/diesel", package = "diesel", default-features = false, features = ["postgres", "uuid"] }
 uuid = { version = "0.8.1", features = ["v4"] }
 tokio = { version = "1", default-features = false, features = ["full"] }
