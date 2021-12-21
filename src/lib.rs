@@ -129,7 +129,7 @@ where
 }
 
 #[async_trait]
-pub trait AsyncRunQueryDsl<Conn, AsyncConn>
+pub trait AsyncRunQueryDsl<'query, Conn, AsyncConn>
 where
     Conn: 'static + Connection + R2D2Connection,
 {
@@ -140,27 +140,27 @@ where
     async fn load_async<U>(self, asc: &AsyncConn) -> AsyncResult<Vec<U>>
     where
         U: Send,
-        Self: LoadQuery<Conn, U>;
+        Self: LoadQuery<'query, Conn, U>;
 
     async fn get_result_async<U>(self, asc: &AsyncConn) -> AsyncResult<U>
     where
         U: Send,
-        Self: LoadQuery<Conn, U>;
+        Self: LoadQuery<'query, Conn, U>;
 
     async fn get_results_async<U>(self, asc: &AsyncConn) -> AsyncResult<Vec<U>>
     where
         U: Send,
-        Self: LoadQuery<Conn, U>;
+        Self: LoadQuery<'query, Conn, U>;
 
     async fn first_async<U>(self, asc: &AsyncConn) -> AsyncResult<U>
     where
         U: Send,
         Self: LimitDsl,
-        Limit<Self>: LoadQuery<Conn, U>;
+        Limit<Self>: LoadQuery<'query, Conn, U>;
 }
 
 #[async_trait]
-impl<T, Conn> AsyncRunQueryDsl<Conn, Pool<ConnectionManager<Conn>>> for T
+impl<'query, T, Conn> AsyncRunQueryDsl<'query, Conn, Pool<ConnectionManager<Conn>>> for T
 where
     T: Send + RunQueryDsl<Conn>,
     Conn: 'static + Connection + R2D2Connection,
@@ -175,7 +175,7 @@ where
     async fn load_async<U>(self, asc: &Pool<ConnectionManager<Conn>>) -> AsyncResult<Vec<U>>
     where
         U: Send,
-        Self: LoadQuery<Conn, U>,
+        Self: LoadQuery<'query, Conn, U>,
     {
         asc.run(|mut conn| self.load(&mut conn)).await
     }
@@ -183,7 +183,7 @@ where
     async fn get_result_async<U>(self, asc: &Pool<ConnectionManager<Conn>>) -> AsyncResult<U>
     where
         U: Send,
-        Self: LoadQuery<Conn, U>,
+        Self: LoadQuery<'query, Conn, U>,
     {
         asc.run(|mut conn| self.get_result(&mut conn)).await
     }
@@ -191,7 +191,7 @@ where
     async fn get_results_async<U>(self, asc: &Pool<ConnectionManager<Conn>>) -> AsyncResult<Vec<U>>
     where
         U: Send,
-        Self: LoadQuery<Conn, U>,
+        Self: LoadQuery<'query, Conn, U>,
     {
         asc.run(|mut conn| self.get_results(&mut conn)).await
     }
@@ -200,7 +200,7 @@ where
     where
         U: Send,
         Self: LimitDsl,
-        Limit<Self>: LoadQuery<Conn, U>,
+        Limit<Self>: LoadQuery<'query, Conn, U>,
     {
         asc.run(|mut conn| self.first(&mut conn)).await
     }
