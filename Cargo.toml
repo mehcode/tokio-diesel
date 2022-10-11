@@ -10,12 +10,12 @@ categories = ["asynchronous", "database"]
 
 [dependencies]
 async-trait = "0.1.42"
-diesel = { version = "2.0.2", default-features = false, features = ["r2d2"] }
+diesel = { version = "2.0.0", default-features = false, features = ["r2d2"] }
 futures = { version = "0.3.8", default-features = false }
 r2d2 = "0.8.8"
 tokio = { version = "1", default-features = false, features = ["rt-multi-thread"] }
 
 [dev-dependencies]
-diesel = { version = "2.0.2", default-features = false, features = ["postgres","uuid"] }
+diesel = { version = "2.0.0", default-features = false, features = ["postgres","uuid"] }
 uuid = { version = "1.2.1", features = ["v4"] }
 tokio = { version = "1", default-features = false, features = ["full"] }
