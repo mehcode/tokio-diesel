@@ -1,4 +1,4 @@
-#[macro_use]
+
 extern crate diesel;
 
 use diesel::{
@@ -19,7 +19,7 @@ table! {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_db_ops() -> Result<(), Box<dyn Error>> {
-    let manager = ConnectionManager::<PgConnection>::new("postgres://postgres@localhost");
+    let manager = ConnectionManager::<PgConnection>::new("postgres://postgres:postgres@localhost/demo");
     let pool = Pool::builder().build(manager)?;
 
     let _ = sql_query(include_str!("./create_users.sql"))
